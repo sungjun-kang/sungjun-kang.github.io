@@ -34,37 +34,38 @@
             margin-bottom: 25px;
         }
 
-        /* Y축 고정 스크롤 차트 구현 (가장 중요) */
-        .chart-scroll-container {
+        /* 완벽한 Y축 틀고정 차트 레이아웃 */
+        .chart-wrapper-outer {
             position: relative;
             width: 100%;
-            overflow-x: auto;
-            margin-bottom: 30px;
             border: 1px solid #dee2e6;
             border-radius: 8px;
             background: #fff;
+            margin-bottom: 30px;
         }
-        .chart-wrapper {
-            position: relative;
-            width: 3000px; /* 차트 길이 확보 */
+        /* 마우스로 스크롤하는 영역 */
+        .main-scroll {
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        /* 실제 차트가 그려지는 거대한 도화지 */
+        .chart-inner-canvas {
+            width: 3000px;
             height: 400px;
         }
-        .chart-main {
+        /* Y축 달러를 고정시키기 위한 가림막 오버레이 */
+        .y-axis-overlay {
             position: absolute;
-            top: 0; left: 0; width: 3000px; height: 400px; z-index: 1;
-        }
-        /* Y축 달러 표시가 따라오도록 틀 고정 오버레이 */
-        .chart-y-axis-sticky {
-            position: sticky;
-            top: 0; left: 0; width: 65px; height: 400px; 
-            overflow: hidden; z-index: 5; 
-            background: rgba(255,255,255,0.95); 
+            top: 0; left: 0;
+            width: 65px; /* Y축 글자가 보일 정도의 너비만 남김 */
+            height: calc(100% - 17px); /* 하단 스크롤바 가리지 않게 공간 띄움 */
+            background: rgba(255,255,255,0.95);
             border-right: 1px dashed #ccc;
-            pointer-events: none; /* 마우스 이벤트 무시하여 툴팁 방해 안함 */
-        }
-        .chart-y-axis-inner {
-            position: absolute;
-            top: 0; left: 0; width: 3000px; height: 400px;
+            pointer-events: none; /* 마우스 인식 끄기 (툴팁 방해 방지) */
+            overflow: hidden; /* 65px 바깥으로 튀어나오는 도화지 숨김 */
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
         }
 
         /* 입력 영역 */
@@ -78,64 +79,25 @@
             border-radius: 8px;
             border: 1px solid #e9ecef;
         }
-        .input-group {
-            display: flex;
-            flex-direction: column;
-        }
-        label {
-            font-size: 12px;
-            font-weight: bold;
-            color: #495057;
-            margin-bottom: 5px;
-        }
-        input {
-            padding: 12px 10px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .readonly-input {
-            background-color: #e2e6ea;
-            color: #c0392b;
-            font-weight: bold;
-            cursor: not-allowed;
-        }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 12px; font-weight: bold; color: #495057; margin-bottom: 5px; }
+        input { padding: 12px 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
+        .readonly-input { background-color: #e2e6ea; color: #c0392b; font-weight: bold; cursor: not-allowed; outline: none; }
+        
         button {
-            width: 100%;
-            padding: 15px;
-            background-color: #0b5e71;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 30px;
-            transition: background 0.2s;
+            width: 100%; padding: 15px; background-color: #0b5e71; color: white;
+            border: none; border-radius: 6px; font-size: 18px; font-weight: bold;
+            cursor: pointer; margin-bottom: 30px; transition: background 0.2s;
         }
         button:hover { background-color: #084655; }
 
         /* 테이블 영역 */
         .table-container {
-            max-height: 500px;
-            overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            max-height: 500px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: center;
-            font-size: 14px;
-        }
+        table { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; }
         th, td { padding: 12px; border-bottom: 1px solid #dee2e6; }
-        th {
-            background-color: #0b5e71;
-            color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
+        th { background-color: #0b5e71; color: white; position: sticky; top: 0; z-index: 10; }
         tr:nth-child(even) { background-color: #f8f9fa; }
         .tax-column { color: #e74c3c; font-weight: bold; }
         .krw-column { color: #27ae60; font-weight: bold; }
@@ -147,17 +109,17 @@
 
     <div class="container">
         <h1>📉 1, 4, 7, 10월 실전 배당 복리 계산기</h1>
-        <div id="exchange-rate-info" class="info-text">💱 실시간 환율을 불러오는 중입니다...</div>
+        <div id="exchange-rate-info" class="info-text">💱 계산기 로딩 중...</div>
 
-        <div class="chart-scroll-container">
-            <div class="chart-wrapper">
-                <div class="chart-main">
-                    <canvas id="myChart"></canvas>
+        <div class="chart-wrapper-outer">
+            <div class="main-scroll">
+                <div class="chart-inner-canvas">
+                    <canvas id="chartMain"></canvas>
                 </div>
-                <div class="chart-y-axis-sticky">
-                    <div class="chart-y-axis-inner">
-                        <canvas id="myChartYAxis"></canvas>
-                    </div>
+            </div>
+            <div class="y-axis-overlay">
+                <div class="chart-inner-canvas">
+                    <canvas id="chartYAxis"></canvas>
                 </div>
             </div>
         </div>
@@ -177,4 +139,197 @@
             </div>
             <div class="input-group">
                 <label>1주당 배당금 ($)</label>
-                <input type="number" id="d
+                <input type="number" id="dps" value="0.98" oninput="updateQuarterlyTotal()" step="0.01">
+            </div>
+            <div class="input-group">
+                <label>총 분기 배당금 (자동계산)</label>
+                <input type="text" id="totalDiv" class="readonly-input" readonly>
+            </div>
+        </div>
+
+        <button onclick="calculateDRIP()">계산 및 차트/표 업데이트 (세후 기준)</button>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>기간 (분기별)</th>
+                        <th>주식명</th>
+                        <th>주식수 (재투자)</th>
+                        <th>세전 배당금 ($)</th>
+                        <th class="tax-column">세후 배당금 ($)</th>
+                        <th class="krw-column">원화 환산 (세후 ₩)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let myChartMain = null;
+        let myChartYAxis = null;
+        let usdToKrw = 1350; // 환율 API 실패를 대비한 기본값 세팅
+
+        // 앱 시작 시 즉시 차트부터 그리고, 환율은 백그라운드에서 천천히 가져옵니다 (먹통 방지)
+        function initApp() {
+            updateQuarterlyTotal();
+            calculateDRIP(); // 1. 무조건 차트부터 즉시 렌더링
+            fetchExchangeRate(); // 2. 환율 비동기 호출
+        }
+
+        // 입력 시 '총 분기 배당금' 칸 자동 계산 로직
+        function updateQuarterlyTotal() {
+            let shares = parseFloat(document.getElementById('stockShares').value) || 0;
+            let dps = parseFloat(document.getElementById('dps').value) || 0;
+            document.getElementById('totalDiv').value = `$ ${(shares * dps).toFixed(2)}`;
+        }
+
+        // 실시간 환율 호출 (실패해도 차트는 정상 작동함)
+        async function fetchExchangeRate() {
+            try {
+                const response = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await response.json();
+                usdToKrw = data.rates.KRW;
+                document.getElementById('exchange-rate-info').innerHTML = `💱 실시간 환율 적용 완료: <strong>1 USD = ${usdToKrw.toLocaleString('ko-KR', {maximumFractionDigits: 2})} 원</strong> (배당세 15% 공제 기준)`;
+                calculateDRIP(); // 환율 성공 시 원화 갱신을 위해 표 다시 그리기
+            } catch (error) {
+                document.getElementById('exchange-rate-info').innerHTML = `💱 실시간 환율 호출 지연 (기본 환율 1,350원 적용 중)`;
+            }
+        }
+
+        function calculateDRIP() {
+            const name = document.getElementById('stockName').value;
+            const initialShares = parseFloat(document.getElementById('stockShares').value);
+            const price = parseFloat(document.getElementById('stockPrice').value);
+            const dps = parseFloat(document.getElementById('dps').value);
+
+            if (!name || isNaN(initialShares) || isNaN(price) || isNaN(dps)) {
+                return; // 에러 팝업 대신 조용히 리턴
+            }
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; 
+
+            let chartLabels = [];
+            let chartDataNet = [];
+            let runningShares = initialShares;
+
+            // 30년 * 4분기 = 120회 루프
+            for (let i = 1; i <= 120; i++) {
+                let grossDiv = runningShares * dps; 
+                let netDiv = grossDiv * 0.85;       // 15% 세금 공제 (세후)
+                let krwDiv = netDiv * usdToKrw;     // 원화 환산
+                
+                let year = Math.ceil(i / 4);
+                let quarter = i % 4 === 0 ? 4 : i % 4;
+                let labelName = `${year}년차 ${quarter}Q`;
+                let rowClass = "";
+
+                if (i === 1) { labelName = "현재 분기"; rowClass = "highlight-current"; } 
+                else if (i === 2) { labelName = "다음 예상분기"; }
+
+                chartLabels.push(i === 1 ? "현재" : i === 2 ? "다음" : `${year}년 ${quarter}Q`);
+                chartDataNet.push(netDiv);
+
+                tbody.innerHTML += `
+                    <tr class="${rowClass}">
+                        <td>${labelName}</td>
+                        <td>${name}</td>
+                        <td>${runningShares.toFixed(2)}주</td>
+                        <td>$${grossDiv.toFixed(2)}</td>
+                        <td class="tax-column">$${netDiv.toFixed(2)}</td>
+                        <td class="krw-column">₩${Math.round(krwDiv).toLocaleString()}</td>
+                    </tr>
+                `;
+
+                runningShares += (netDiv / price); // 세후 배당금으로 주식 추가 매수 (DRIP)
+            }
+
+            drawDualCharts(chartLabels, chartDataNet);
+        }
+
+        // 메인 차트와 Y축용 차트 2개를 겹쳐서 완벽하게 고정시키는 로직
+        function drawDualCharts(labels, dataNet) {
+            const ctxMain = document.getElementById('chartMain').getContext('2d');
+            const ctxYAxis = document.getElementById('chartYAxis').getContext('2d');
+
+            if (myChartMain) myChartMain.destroy();
+            if (myChartYAxis) myChartYAxis.destroy();
+
+            // 두 차트의 Y축 눈금이 어긋나지 않도록 최대값을 강제로 일치시킴
+            const maxVal = Math.max(...dataNet) * 1.1;
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false, // 스크롤 시 렌더링 꼬임 방지
+                layout: { padding: { top: 20, right: 20, bottom: 10, left: 10 } },
+                plugins: { legend: { display: false } }
+            };
+
+            // 1. 메인 차트 (스크롤되는 영역)
+            myChartMain = new Chart(ctxMain, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: dataNet, backgroundColor: '#0b5e71', borderRadius: 3 }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: { display: true },
+                        y: { 
+                            display: true, beginAtZero: true, max: maxVal, 
+                            ticks: { color: 'transparent' } // 숫자는 가리고 보조선만 유지
+                        } 
+                    },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let usd = context.raw;
+                                    let krw = usd * usdToKrw;
+                                    return ` 세후: $${usd.toLocaleString(undefined, {minimumFractionDigits: 2})} (약 ₩${Math.round(krw).toLocaleString()})`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Y축 전용 차트 (왼쪽에 고정되는 영역)
+            myChartYAxis = new Chart(ctxYAxis, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: dataNet, backgroundColor: 'transparent' }] // 막대기를 투명하게 만들어 숨김
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        x: { 
+                            display: true, 
+                            ticks: { color: 'transparent' }, // X축 글자 숨김
+                            grid: { display: false } // X축 선 숨김
+                        },
+                        y: { 
+                            display: true, beginAtZero: true, max: maxVal, 
+                            ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } // Y축 달러만 표시
+                        }
+                    },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        tooltip: { enabled: false } // 고정 영역 툴팁 끄기
+                    }
+                }
+            });
+        }
+
+        // 페이지 로드 시 앱 초기화 실행
+        window.onload = initApp;
+    </script>
+</body>
+</html>
