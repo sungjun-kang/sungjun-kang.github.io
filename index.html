@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1, 4, 7, 10월 배당주 복리 계산기</title>
+    <title>1, 4, 7, 10월 배당 복리 계산기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, sans-serif;
             background-color: #f8f9fa;
             color: #333;
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -24,8 +24,25 @@
         h1 {
             text-align: center;
             color: #0b5e71;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
+
+        /* 차트 영역 최상단 배치 및 가로 스크롤 적용 */
+        .chart-scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .chart-wrapper {
+            min-width: 3000px; /* 120개 분기가 뭉개지지 않도록 강제 넓이 지정 */
+            height: 400px;
+            padding: 10px;
+        }
+
+        /* 입력 영역 */
         .input-area {
             display: flex;
             gap: 15px;
@@ -68,10 +85,13 @@
         button:hover {
             background-color: #084655;
         }
-        .chart-wrapper {
-            width: 100%;
-            height: 400px; /* 차트 크기 확보 */
-            margin-bottom: 40px;
+
+        /* 테이블 영역 (스크롤 가능하게 처리) */
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
         }
         table {
             width: 100%;
@@ -80,17 +100,24 @@
         }
         th, td {
             padding: 12px;
-            border: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
         }
         th {
             background-color: #0b5e71;
             color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
         tr:nth-child(even) {
             background-color: #f8f9fa;
         }
-        .highlight {
-            background-color: #e3f2fd !important;
+        .highlight-current {
+            background-color: #ffeaa7 !important;
+            font-weight: bold;
+        }
+        .highlight-next {
+            background-color: #81ecec !important;
             font-weight: bold;
         }
     </style>
@@ -99,6 +126,12 @@
 
     <div class="container">
         <h1>📉 1, 4, 7, 10월 배당 복리 계산기</h1>
+
+        <div class="chart-scroll-container">
+            <div class="chart-wrapper">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
 
         <div class="input-area">
             <div class="input-group">
@@ -119,24 +152,22 @@
             </div>
         </div>
 
-        <button onclick="calculateDRIP()">계산 및 차트 출력</button>
+        <button onclick="calculateDRIP()">계산 및 차트/표 업데이트</button>
 
-        <div class="chart-wrapper">
-            <canvas id="myChart"></canvas>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>기간 (분기별)</th>
+                        <th>주식명</th>
+                        <th>해당 시점 주식수 (재투자 반영)</th>
+                        <th>분기 예상 배당금 ($)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    </tbody>
+            </table>
         </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>기간</th>
-                    <th>주식명</th>
-                    <th>해당 시점 주식수 (재투자)</th>
-                    <th>예상 배당금 ($)</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                </tbody>
-        </table>
     </div>
 
     <script>
@@ -149,51 +180,59 @@
             const prevDiv = parseFloat(document.getElementById('prevDiv').value);
 
             if (!name || isNaN(initialShares) || isNaN(price) || isNaN(prevDiv)) {
-                alert("모든 칸에 올바른 값을 입력해주세요.");
+                alert("모든 칸에 올바른 숫자를 입력해주세요.");
                 return;
             }
 
             const dps = prevDiv / initialShares; // 1주당 분기 배당금
             const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ''; // 기존 표 내용 초기화
+            tbody.innerHTML = ''; 
 
             let chartLabels = [];
             let chartData = [];
-
-            // 1. 현재 분기
-            let currentShares = initialShares;
-            let currentDiv = currentShares * dps;
-            tbody.innerHTML += `<tr class="highlight"><td>현재 분기</td><td>${name}</td><td>${currentShares.toFixed(2)}주</td><td>$${currentDiv.toFixed(2)} (분기)</td></tr>`;
-
-            // 2. 다음 예상 분기 (현재 분기 배당금으로 주식 추가 매수)
-            let nextShares = currentShares + (currentDiv / price);
-            let nextDiv = nextShares * dps;
-            tbody.innerHTML += `<tr class="highlight"><td>다음 예상분기</td><td>${name}</td><td>${nextShares.toFixed(2)}주</td><td>$${nextDiv.toFixed(2)} (분기)</td></tr>`;
-
-            // 3. 1년 후 ~ 30년 후 계산
             let runningShares = initialShares;
-            for (let year = 1; year <= 30; year++) {
-                let yearlyTotalDiv = 0;
+
+            // 30년 * 4분기 = 120번 반복 (모든 분기 쪼개서 계산)
+            for (let i = 1; i <= 120; i++) {
+                // 이번 분기 배당금 계산
+                let currentDiv = runningShares * dps;
                 
-                // 1년 = 4분기 복리 사이클
-                for (let q = 1; q <= 4; q++) {
-                    let quarterDiv = runningShares * dps;
-                    yearlyTotalDiv += quarterDiv;
-                    runningShares += (quarterDiv / price); // 배당 재투자
+                // 기간 라벨 생성
+                let year = Math.ceil(i / 4);
+                let quarter = i % 4 === 0 ? 4 : i % 4;
+                let labelName = `${year}년차 ${quarter}분기`;
+                
+                let rowClass = "";
+                if (i === 1) {
+                    labelName = "현재 분기 (1년차 1분기)";
+                    rowClass = "highlight-current";
+                } else if (i === 2) {
+                    labelName = "다음 예상분기 (1년차 2분기)";
+                    rowClass = "highlight-next";
                 }
 
+                // 차트용 데이터 수집
+                chartLabels.push(i === 1 ? "현재 분기" : i === 2 ? "다음 분기" : `${year}년 ${quarter}Q`);
+                chartData.push(currentDiv);
+
                 // 표에 데이터 추가
-                tbody.innerHTML += `<tr><td>${year}년 후</td><td>${name}</td><td>${runningShares.toFixed(2)}주</td><td>$${yearlyTotalDiv.toFixed(2)} (연간 합계)</td></tr>`;
-                
-                // 차트 데이터 수집
-                chartLabels.push(`${year}년`);
-                chartData.push(yearlyTotalDiv);
+                tbody.innerHTML += `
+                    <tr class="${rowClass}">
+                        <td>${labelName}</td>
+                        <td>${name}</td>
+                        <td>${runningShares.toFixed(2)}주</td>
+                        <td>$${currentDiv.toFixed(2)}</td>
+                    </tr>
+                `;
+
+                // 배당금으로 주식 추가 매수 (복리 적용)
+                runningShares += (currentDiv / price); 
             }
 
             // 4. 차트 그리기
             const ctx = document.getElementById('myChart').getContext('2d');
             if (myChartInstance) {
-                myChartInstance.destroy(); // 기존 차트가 있으면 삭제하고 다시 그림
+                myChartInstance.destroy(); 
             }
             
             myChartInstance = new Chart(ctx, {
@@ -201,10 +240,10 @@
                 data: {
                     labels: chartLabels,
                     datasets: [{
-                        label: '연간 예상 배당금 ($)',
+                        label: '분기별 예상 배당금 ($)',
                         data: chartData,
                         backgroundColor: '#0b5e71',
-                        borderRadius: 4
+                        borderRadius: 3
                     }]
                 },
                 options: {
@@ -214,6 +253,16 @@
                         y: {
                             beginAtZero: true,
                             ticks: { callback: function(value) { return '$' + value.toLocaleString(); } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' $' + context.raw.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
                         }
                     }
                 }
