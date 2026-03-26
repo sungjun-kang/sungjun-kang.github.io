@@ -3,254 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>배당 포트폴리오 복리 대시보드</title>
+    <title>배당 포트폴리오 30년 복리 대시보드</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #0b5e71; --bg: #f4f7f6; --card-bg: #ffffff; --border: #e0e5ec; }
+        :root { --primary: #0b5e71; --bg: #f0f2f5; --card-bg: #ffffff; --border: #cbd5e1; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: #333; }
-        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 24px; }
         
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+        /* 상단 입력 대시보드 (입력창 최소화) */
+        .input-dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
         
-        .card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 5px solid var(--primary); }
-        .card.total-card { grid-column: 1 / -1; border-top: 5px solid #d35400; }
-        .card h2 { margin-top: 0; color: var(--primary); font-size: 20px; text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
-        .total-card h2 { color: #d35400; }
+        .input-card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-top: 4px solid var(--primary); }
+        .input-card h2 { margin: 0 0 10px 0; font-size: 16px; color: var(--primary); text-align: center; }
+        
+        /* 엑셀 느낌의 컴팩트한 입력창 */
+        .input-header { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 30px; gap: 5px; font-size: 11px; font-weight: bold; color: #666; text-align: center; margin-bottom: 5px; }
+        .stock-item { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1.5fr 30px; gap: 5px; margin-bottom: 5px; align-items: center; }
+        .stock-item input { padding: 6px 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; text-align: center; width: 100%; box-sizing: border-box; }
+        
+        .btn-add { background: #27ae60; color: white; border: none; padding: 6px; font-size: 12px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 5px; font-weight: bold; }
+        .btn-add:hover { background: #1e8449; }
+        .btn-del { background: #e74c3c; color: white; border: none; height: 100%; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-del:hover { background: #c0392b; }
 
-        .stock-item { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .input-group { display: flex; flex-direction: column; }
-        label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
-        input { padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; }
-        
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { width: 100%; padding: 12px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: background 0.3s; }
-        button:hover { background-color: #084655; }
-        
-        .add-btn { background-color: #27ae60; margin-top: 5px; }
-        .add-btn:hover { background-color: #1e8449; }
-        .remove-btn { background-color: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 10px; width: 100%; font-weight: bold; }
-        .remove-btn:hover { background-color: #c0392b; }
-        
-        .total-card .calc-btn { background-color: #d35400; padding: 15px; font-size: 18px; }
-        .total-card .calc-btn:hover { background-color: #a04000; }
+        /* 중앙 실행 버튼 */
+        .calc-wrapper { text-align: center; margin-bottom: 30px; }
+        .btn-calc { background: #d35400; color: white; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+        .btn-calc:hover { background: #ba4a00; }
+        .btn-calc:active { transform: scale(0.98); }
 
-        .chart-container { width: 100%; height: 250px; margin-bottom: 20px; }
-        .table-container { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
-        th, td { padding: 8px; border-bottom: 1px solid var(--border); }
-        th { background-color: var(--primary); color: white; position: sticky; top: 0; }
-        .total-card th { background-color: #d35400; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
+        /* 하단 차트 대시보드 (크고 넓게) */
+        .chart-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        .chart-card.total { grid-column: 1 / -1; border-top: 5px solid #d35400; } /* 전체 합산은 가로 전체 차지 */
         
-        .summary-box { background: #e8f8f5; padding: 12px; border-radius: 6px; text-align: center; margin-bottom: 15px; font-weight: bold; color: #117a65; font-size: 14px; }
-        .total-card .summary-box { background: #fdf2e9; color: #ba4a00; font-size: 16px; }
+        .chart-card h3 { margin-top: 0; font-size: 18px; color: #333; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .chart-container { width: 100%; height: 350px; } /* 차트 높이 고정 (크게) */
+        .total .chart-container { height: 450px; } /* 합산 차트는 더 크게 */
+
+        .summary { text-align: center; font-weight: bold; font-size: 15px; margin-top: 15px; color: var(--primary); }
+        .total .summary { color: #d35400; font-size: 18px; }
+
     </style>
 </head>
 <body>
 
-    <h1>📊 맞춤형 배당 포트폴리오 대시보드</h1>
+    <h1>📊 배당 포트폴리오 30년 복리 대시보드</h1>
 
-    <div class="dashboard">
-        <div class="card">
-            <h2>1, 4, 7, 10월 배당주</h2>
+    <div class="input-dashboard">
+        <div class="input-card">
+            <h2>1, 4, 7, 10월</h2>
+            <div class="input-header"><span>종목</span><span>수량(주)</span><span>주가($)</span><span>총배당($)</span><span></span></div>
             <div id="list1">
                 <div class="stock-item">
-                    <div class="input-grid">
-                        <div class="input-group"><label>종목명</label><input type="text" class="name" value="알트리아"></div>
-                        <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" value="308"></div>
-                        <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" value="45.00"></div>
-                        <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" value="301.84"></div>
-                    </div>
-                    <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
+                    <input type="text" class="name" value="알트리아"><input type="number" class="shares" value="308"><input type="number" class="price" value="45.00"><input type="number" class="prevDiv" value="301.84"><button class="btn-del" onclick="this.parentElement.remove()">X</button>
                 </div>
             </div>
-            <button class="add-btn" onclick="addStock(1)">+ 주식 추가</button>
-            <div id="summary1" class="summary-box" style="display:none;"></div>
-            <div class="chart-container"><canvas id="chart1"></canvas></div>
-            <div class="table-container">
-                <table id="table1" style="display:none;">
-                    <thead><tr><th>연차</th><th>해당 그룹 연간 총 배당금</th></tr></thead>
-                    <tbody id="tbody1"></tbody>
-                </table>
-            </div>
+            <button class="btn-add" onclick="addStock(1)">+ 종목 추가</button>
         </div>
 
-        <div class="card">
-            <h2>2, 5, 8, 11월 배당주</h2>
+        <div class="input-card">
+            <h2>2, 5, 8, 11월</h2>
+            <div class="input-header"><span>종목</span><span>수량(주)</span><span>주가($)</span><span>총배당($)</span><span></span></div>
             <div id="list2">
                 <div class="stock-item">
-                    <div class="input-grid">
-                        <div class="input-group"><label>종목명</label><input type="text" class="name" value="버라이존"></div>
-                        <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" value="360"></div>
-                        <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" value="40.00"></div>
-                        <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" value="237.60"></div>
-                    </div>
-                    <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
+                    <input type="text" class="name" value="버라이존"><input type="number" class="shares" value="360"><input type="number" class="price" value="40.00"><input type="number" class="prevDiv" value="237.60"><button class="btn-del" onclick="this.parentElement.remove()">X</button>
                 </div>
             </div>
-            <button class="add-btn" onclick="addStock(2)">+ 주식 추가</button>
-            <div id="summary2" class="summary-box" style="display:none;"></div>
-            <div class="chart-container"><canvas id="chart2"></canvas></div>
-            <div class="table-container">
-                <table id="table2" style="display:none;">
-                    <thead><tr><th>연차</th><th>해당 그룹 연간 총 배당금</th></tr></thead>
-                    <tbody id="tbody2"></tbody>
-                </table>
-            </div>
+            <button class="btn-add" onclick="addStock(2)">+ 종목 추가</button>
         </div>
 
-        <div class="card">
-            <h2>3, 6, 9, 12월 배당주</h2>
+        <div class="input-card">
+            <h2>3, 6, 9, 12월</h2>
+            <div class="input-header"><span>종목</span><span>수량(주)</span><span>주가($)</span><span>총배당($)</span><span></span></div>
             <div id="list3">
                 <div class="stock-item">
-                    <div class="input-grid">
-                        <div class="input-group"><label>종목명</label><input type="text" class="name" value="SCHD"></div>
-                        <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" value="7"></div>
-                        <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" value="80.00"></div>
-                        <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" value="5.25"></div>
-                    </div>
-                    <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
+                    <input type="text" class="name" value="SCHD"><input type="number" class="shares" value="7"><input type="number" class="price" value="80.00"><input type="number" class="prevDiv" value="5.25"><button class="btn-del" onclick="this.parentElement.remove()">X</button>
                 </div>
                 <div class="stock-item">
-                    <div class="input-grid">
-                        <div class="input-group"><label>종목명</label><input type="text" class="name" value="브로드컴"></div>
-                        <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" value="230"></div>
-                        <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" value="130.00"></div>
-                        <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" value="119.60"></div>
-                    </div>
-                    <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
+                    <input type="text" class="name" value="브로드컴"><input type="number" class="shares" value="230"><input type="number" class="price" value="130.00"><input type="number" class="prevDiv" value="119.60"><button class="btn-del" onclick="this.parentElement.remove()">X</button>
                 </div>
                 <div class="stock-item">
-                    <div class="input-grid">
-                        <div class="input-group"><label>종목명</label><input type="text" class="name" value="마이크로소프트"></div>
-                        <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" value="3"></div>
-                        <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" value="400.00"></div>
-                        <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" value="2.25"></div>
-                    </div>
-                    <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
+                    <input type="text" class="name" value="마이크로소프트"><input type="number" class="shares" value="3"><input type="number" class="price" value="400.00"><input type="number" class="prevDiv" value="2.25"><button class="btn-del" onclick="this.parentElement.remove()">X</button>
                 </div>
                 <div class="stock-item">
-                    <div class="input-grid">
-                        <div class="input-group"><label>종목명</label><input type="text" class="name" value="알파벳"></div>
-                        <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" value="3"></div>
-                        <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" value="140.00"></div>
-                        <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" value="0.60"></div>
-                    </div>
-                    <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
+                    <input type="text" class="name" value="알파벳"><input type="number" class="shares" value="3"><input type="number" class="price" value="140.00"><input type="number" class="prevDiv" value="0.60"><button class="btn-del" onclick="this.parentElement.remove()">X</button>
                 </div>
             </div>
-            <button class="add-btn" onclick="addStock(3)">+ 주식 추가</button>
-            <div id="summary3" class="summary-box" style="display:none;"></div>
-            <div class="chart-container"><canvas id="chart3"></canvas></div>
-            <div class="table-container">
-                <table id="table3" style="display:none;">
-                    <thead><tr><th>연차</th><th>해당 그룹 연간 총 배당금</th></tr></thead>
-                    <tbody id="tbody3"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="card total-card">
-            <h2>🌟 포트폴리오 전체 합산 (30년 복리)</h2>
-            <button class="calc-btn" onclick="calculateAll()">전체 포트폴리오 계산 및 차트 업데이트</button>
-            <div id="summaryTotal" class="summary-box" style="display:none;"></div>
-            <div class="chart-container" style="height: 350px;"><canvas id="chartTotal"></canvas></div>
-            <div class="table-container" style="max-height: 300px;">
-                <table id="tableTotal" style="display:none;">
-                    <thead><tr><th>연차</th><th>포트폴리오 연간 총 배당금 ($)</th><th>월 평균 배당금 ($)</th></tr></thead>
-                    <tbody id="tbodyTotal"></tbody>
-                </table>
-            </div>
+            <button class="btn-add" onclick="addStock(3)">+ 종목 추가</button>
         </div>
     </div>
 
-    <script>
-        let charts = {};
+    <div class="calc-wrapper">
+        <button class="btn-calc" onclick="calculateAndDraw()">🚀 전체 계산 및 차트 업데이트</button>
+    </div>
 
-        // 새로운 주식 입력칸 추가 함수
-        function addStock(groupId) {
-            const list = document.getElementById(`list${groupId}`);
-            const item = document.createElement('div');
-            item.className = 'stock-item';
-            item.innerHTML = `
-                <div class="input-grid">
-                    <div class="input-group"><label>종목명</label><input type="text" class="name" placeholder="예: 코카콜라"></div>
-                    <div class="input-group"><label>현재 주식수 (주)</label><input type="number" class="shares" placeholder="0"></div>
-                    <div class="input-group"><label>현재 1주당 주가 ($)</label><input type="number" class="price" placeholder="0.00"></div>
-                    <div class="input-group"><label>저번 분기 총 배당금 ($)</label><input type="number" class="prevDiv" placeholder="0.00"></div>
-                </div>
-                <button class="remove-btn" onclick="removeStock(this)">이 종목 삭제</button>
-            `;
-            list.appendChild(item);
-        }
-
-        // 주식 입력칸 삭제 함수
-        function removeStock(btn) {
-            btn.parentElement.remove();
-        }
-
-        // 차트 그리기 함수
-        function drawChart(canvasId, labels, data, labelName, color) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
-            if (charts[canvasId]) charts[canvasId].destroy();
-
-            charts[canvasId] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{ label: labelName, data: data, backgroundColor: color, borderRadius: 4 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
-
-        // 각 그룹별 데이터 계산 함수
-        function processGroup(groupId, color) {
-            const items = document.querySelectorAll(`#list${groupId} .stock-item`);
-            let yearlyData = Array(30).fill(0).map((_, i) => ({ year: i + 1, totalDiv: 0 }));
-            let validStocks = 0;
-
-            items.forEach(item => {
-                let shares = parseFloat(item.querySelector('.shares').value) || 0;
-                let price = parseFloat(item.querySelector('.price').value) || 0;
-                let prevDiv = parseFloat(item.querySelector('.prevDiv').value) || 0;
-
-                // 0값이 아닌 유효한 데이터가 있을 때만 계산 (빈칸은 에러 없이 0으로 무시됨)
-                if (shares > 0 && price > 0 && prevDiv > 0) {
-                    validStocks++;
-                    let dps = prevDiv / shares; // 1주당 분기 배당금
-                    
-                    for (let i = 0; i < 30; i++) {
-                        let yearDiv = 0;
-                        for (let q = 0; q < 4; q++) {
-                            let quarterDiv = shares * dps;
-                            yearDiv += quarterDiv;
-                            shares += (quarterDiv / price); // 받은 배당금으로 재투자(DRIP)
-                        }
-                        yearlyData[i].totalDiv += yearDiv;
-                    }
-                }
-            });
-
-            // UI 업데이트
-            let chartLabels = [];
-            let chartData = [];
-            const tbody = document.getElementById(`tbody${groupId}`);
-            tbody.innerHTML = '';
-
-            yearlyData.forEach(d => {
-                chartLabels.push(`${d.year}년`);
-                chartData.push(d.totalDiv);
-                if (validStocks > 0) {
-                    tbody.innerHTML += `<tr><td>${d.year}년</td><td>$${d.totalDiv.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>`;
-                }
-            });
-
-            if (validStocks > 0) {
-                document.getElementById(`table${groupId}`).style.display = 'table';
-                document.getElementById(`summary${groupId}`).style.display = 'block';
-                document.getElementById(`summary${groupId}`).innerHTML = `💡 그룹 향후 1년(4분기) 예상 배당금: <strong>$${yearlyData[0].totalDiv.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>`;
-            } else {
-                document.getElementById(`table${groupId}`).style.display = 'none';
-                document.getElementById(`summary${groupId}`).style.display = 'none
+    <div class="chart-dashboard">
+        <div class="chart-card total">
+            <h3>🌟 포트폴리오 전체 합산 (30년 복리)</h3>
+            <div class="chart-container"><canvas id="chartTotal"></canvas></div>
+            <div id="sumTotal" class="summary">계산 버튼을 눌러주세요.</div>
+        </div>
+        
+        <div class="chart-card">
+            <h3>1,
