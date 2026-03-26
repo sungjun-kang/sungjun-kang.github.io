@@ -3,32 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1, 4, 7, 10월 배당 복리 계산기</title>
+    <title>실전 1, 4, 7, 10월 배당 복리 계산기</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: #f8f9fa;
+            background-color: #f4f6f9;
             color: #333;
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             padding: 20px;
         }
         .container {
             background-color: white;
             padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             border-top: 5px solid #0b5e71;
         }
         h1 {
             text-align: center;
             color: #0b5e71;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
+        }
+        .info-text {
+            text-align: center;
+            color: #d35400;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 25px;
         }
 
-        /* 차트 영역 최상단 배치 및 가로 스크롤 적용 */
+        /* Y축 고정 스크롤 차트 구현 (가장 중요) */
         .chart-scroll-container {
+            position: relative;
             width: 100%;
             overflow-x: auto;
             margin-bottom: 30px;
@@ -37,38 +45,60 @@
             background: #fff;
         }
         .chart-wrapper {
-            min-width: 3000px; /* 120개 분기가 뭉개지지 않도록 강제 넓이 지정 */
+            position: relative;
+            width: 3000px; /* 차트 길이 확보 */
             height: 400px;
-            padding: 10px;
+        }
+        .chart-main {
+            position: absolute;
+            top: 0; left: 0; width: 3000px; height: 400px; z-index: 1;
+        }
+        /* Y축 달러 표시가 따라오도록 틀 고정 오버레이 */
+        .chart-y-axis-sticky {
+            position: sticky;
+            top: 0; left: 0; width: 65px; height: 400px; 
+            overflow: hidden; z-index: 5; 
+            background: rgba(255,255,255,0.95); 
+            border-right: 1px dashed #ccc;
+            pointer-events: none; /* 마우스 이벤트 무시하여 툴팁 방해 안함 */
+        }
+        .chart-y-axis-inner {
+            position: absolute;
+            top: 0; left: 0; width: 3000px; height: 400px;
         }
 
         /* 입력 영역 */
         .input-area {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
             gap: 15px;
-            flex-wrap: wrap;
             margin-bottom: 20px;
-            background: #f1f3f5;
+            background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
         .input-group {
             display: flex;
             flex-direction: column;
-            flex: 1;
-            min-width: 150px;
         }
         label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             color: #495057;
             margin-bottom: 5px;
         }
         input {
-            padding: 10px;
+            padding: 12px 10px;
             border: 1px solid #ced4da;
-            border-radius: 5px;
-            font-size: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .readonly-input {
+            background-color: #e2e6ea;
+            color: #c0392b;
+            font-weight: bold;
+            cursor: not-allowed;
         }
         button {
             width: 100%;
@@ -76,19 +106,18 @@
             background-color: #0b5e71;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             margin-bottom: 30px;
+            transition: background 0.2s;
         }
-        button:hover {
-            background-color: #084655;
-        }
+        button:hover { background-color: #084655; }
 
-        /* 테이블 영역 (스크롤 가능하게 처리) */
+        /* 테이블 영역 */
         .table-container {
-            max-height: 600px;
+            max-height: 500px;
             overflow-y: auto;
             border: 1px solid #dee2e6;
             border-radius: 8px;
@@ -97,39 +126,39 @@
             width: 100%;
             border-collapse: collapse;
             text-align: center;
+            font-size: 14px;
         }
-        th, td {
-            padding: 12px;
-            border-bottom: 1px solid #dee2e6;
-        }
+        th, td { padding: 12px; border-bottom: 1px solid #dee2e6; }
         th {
             background-color: #0b5e71;
             color: white;
             position: sticky;
             top: 0;
-            z-index: 1;
+            z-index: 10;
         }
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        .highlight-current {
-            background-color: #ffeaa7 !important;
-            font-weight: bold;
-        }
-        .highlight-next {
-            background-color: #81ecec !important;
-            font-weight: bold;
-        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .tax-column { color: #e74c3c; font-weight: bold; }
+        .krw-column { color: #27ae60; font-weight: bold; }
+        .highlight-current { background-color: #fff3cd !important; font-weight: bold; }
+        
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>📉 1, 4, 7, 10월 배당 복리 계산기</h1>
+        <h1>📉 1, 4, 7, 10월 실전 배당 복리 계산기</h1>
+        <div id="exchange-rate-info" class="info-text">💱 실시간 환율을 불러오는 중입니다...</div>
 
         <div class="chart-scroll-container">
             <div class="chart-wrapper">
-                <canvas id="myChart"></canvas>
+                <div class="chart-main">
+                    <canvas id="myChart"></canvas>
+                </div>
+                <div class="chart-y-axis-sticky">
+                    <div class="chart-y-axis-inner">
+                        <canvas id="myChartYAxis"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -140,137 +169,12 @@
             </div>
             <div class="input-group">
                 <label>현재 주식수 (주)</label>
-                <input type="number" id="stockShares" value="308">
+                <input type="number" id="stockShares" value="308" oninput="updateQuarterlyTotal()">
             </div>
             <div class="input-group">
                 <label>현재 주가 ($)</label>
                 <input type="number" id="stockPrice" value="45.00">
             </div>
             <div class="input-group">
-                <label>저번 분기 배당금 ($)</label>
-                <input type="number" id="prevDiv" value="301.84">
-            </div>
-        </div>
-
-        <button onclick="calculateDRIP()">계산 및 차트/표 업데이트</button>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>기간 (분기별)</th>
-                        <th>주식명</th>
-                        <th>해당 시점 주식수 (재투자 반영)</th>
-                        <th>분기 예상 배당금 ($)</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-        let myChartInstance = null;
-
-        function calculateDRIP() {
-            const name = document.getElementById('stockName').value;
-            const initialShares = parseFloat(document.getElementById('stockShares').value);
-            const price = parseFloat(document.getElementById('stockPrice').value);
-            const prevDiv = parseFloat(document.getElementById('prevDiv').value);
-
-            if (!name || isNaN(initialShares) || isNaN(price) || isNaN(prevDiv)) {
-                alert("모든 칸에 올바른 숫자를 입력해주세요.");
-                return;
-            }
-
-            const dps = prevDiv / initialShares; // 1주당 분기 배당금
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ''; 
-
-            let chartLabels = [];
-            let chartData = [];
-            let runningShares = initialShares;
-
-            // 30년 * 4분기 = 120번 반복 (모든 분기 쪼개서 계산)
-            for (let i = 1; i <= 120; i++) {
-                // 이번 분기 배당금 계산
-                let currentDiv = runningShares * dps;
-                
-                // 기간 라벨 생성
-                let year = Math.ceil(i / 4);
-                let quarter = i % 4 === 0 ? 4 : i % 4;
-                let labelName = `${year}년차 ${quarter}분기`;
-                
-                let rowClass = "";
-                if (i === 1) {
-                    labelName = "현재 분기 (1년차 1분기)";
-                    rowClass = "highlight-current";
-                } else if (i === 2) {
-                    labelName = "다음 예상분기 (1년차 2분기)";
-                    rowClass = "highlight-next";
-                }
-
-                // 차트용 데이터 수집
-                chartLabels.push(i === 1 ? "현재 분기" : i === 2 ? "다음 분기" : `${year}년 ${quarter}Q`);
-                chartData.push(currentDiv);
-
-                // 표에 데이터 추가
-                tbody.innerHTML += `
-                    <tr class="${rowClass}">
-                        <td>${labelName}</td>
-                        <td>${name}</td>
-                        <td>${runningShares.toFixed(2)}주</td>
-                        <td>$${currentDiv.toFixed(2)}</td>
-                    </tr>
-                `;
-
-                // 배당금으로 주식 추가 매수 (복리 적용)
-                runningShares += (currentDiv / price); 
-            }
-
-            // 4. 차트 그리기
-            const ctx = document.getElementById('myChart').getContext('2d');
-            if (myChartInstance) {
-                myChartInstance.destroy(); 
-            }
-            
-            myChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: '분기별 예상 배당금 ($)',
-                        data: chartData,
-                        backgroundColor: '#0b5e71',
-                        borderRadius: 3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { callback: function(value) { return '$' + value.toLocaleString(); } }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return ' $' + context.raw.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 페이지 로드 시 자동으로 한 번 계산
-        window.onload = calculateDRIP;
-    </script>
-</body>
-</html>
+                <label>1주당 배당금 ($)</label>
+                <input type="number" id="d
