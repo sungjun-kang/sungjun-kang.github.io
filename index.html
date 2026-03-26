@@ -3,133 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>배당금 복리 계산기</title>
+    <title>배당 성장의 꿈 (Dividend Growth Dream) - 30년 복리 계산기</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --primary-color: #0b5e71; /* 짙은 청록색 (Teal/Dark Blue) from image_7.png */
+            --header-bg: #117a8e; /* 약간 밝은 청록색 */
+            --text-on-primary: #ffffff;
+            --table-header-bg: #0b5e71;
+            --table-row-odd-bg: #e6e9ee; /* 회색조 */
+            --table-row-even-bg: #f5f7f9;
+            --border-color: #ddd;
+        }
+
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 0; 
             background-color: #f4f7f6; 
             color: #333; 
-            max-width: 600px; 
-            margin: 40px auto; 
-            padding: 30px; 
-            background: white; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
         }
-        h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
-        input[type="text"], input[type="number"] { 
+
+        /* 헤더 (제목 영역) */
+        header {
+            background-color: var(--header-bg);
+            color: var(--text-on-primary);
+            text-align: center;
+            padding: 30px 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        header p {
+            margin: 5px 0 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* 메인 컨텐츠 영역 */
+        main {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 입력 폼 섹션 (상단) */
+        .input-section {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: space-between;
+        }
+        .input-group { flex: 1; min-width: 250px; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
+        .input-section input[type="text"], .input-section input[type="number"] { 
             width: 100%; 
             padding: 12px; 
-            border: 1px solid #ddd; 
+            border: 1px solid var(--border-color); 
             border-radius: 8px; 
             box-sizing: border-box; 
             font-size: 15px;
         }
-        button { 
-            width: 100%; 
-            padding: 15px; 
-            background-color: #3498db; 
+        .input-section button { 
+            width: auto; 
+            padding: 12px 30px; 
+            background-color: var(--primary-color); 
             color: white; 
             border: none; 
             border-radius: 8px; 
-            font-size: 18px; 
+            font-size: 16px; 
             font-weight: bold; 
             cursor: pointer; 
             transition: background-color 0.3s;
-            margin-top: 10px; 
+            align-self: flex-end; /* 버튼을 입력 필드 하단에 정렬 */
         }
-        button:hover { background-color: #2980b9; }
-        .result-box { 
-            margin-top: 25px; 
-            padding: 20px; 
-            background-color: #e8f8f5; 
-            border: 1px solid #d1f2eb;
-            border-radius: 8px; 
-            text-align: center; 
-            font-size: 18px; 
-            color: #117a65; 
+        .input-section button:hover { background-color: #094a59; }
+
+        /* 차트 영역 (image_7.png와 동일한 테두리 및 제목) */
+        .chart-section {
+            background-color: #ffffff;
+            border: 2px solid var(--primary-color); /* 테두리 */
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
-        th { background-color: #3498db; color: white; font-weight: bold; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        tr:hover { background-color: #f1f1f1; }
+        .chart-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px; /* 차트 높이 조절 */
+        }
+
+        /* 탭 버튼 메뉴 (수평 배열) */
+        .tab-section {
+            display: flex;
+            gap: 0; /* 버튼 사이 공백 없음 */
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab-section button {
+            flex: 1;
+            padding: 15px;
+            background-color: var(--primary-color);
+            color: var(--text-on-primary);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+        .tab-section button:hover { background-color: #094a59; }
+        .tab-section button.active {
+            background-color: #f4f7f6; /* 활성화된 탭 배경 */
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        /* 데이터 표 섹션 */
+        .table-section {
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .table-section h2 {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--primary-color);
+            color: var(--text-on-primary);
+            font-size: 18px;
+            text-align: center;
+        }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { padding: 12px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        th { background-color: var(--table-header-bg); color: var(--text-on-primary); font-weight: bold; font-size: 14px; }
+        tr:nth-child(odd) { background-color: var(--table-row-odd-bg); }
+        tr:nth-child(even) { background-color: var(--table-row-even-bg); }
+        tr:hover { background-color: #d1d9e6; } /* 더 짙은 회색으로 호버 효과 */
+        
+        /* 주석 */
+        .notes {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #777;
+            text-align: center;
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>📈 배당금 30년 복리 계산기</h1>
+    <header>
+        <h1>📊 배당 성장의 꿈 (Dividend Growth Dream)</h1>
+        <p>Your 30-Year Dividend Compounder</p>
+    </header>
 
-    <div class="input-group">
-        <label for="stockName">종목명 및 수량</label>
-        <input type="text" id="stockName" placeholder="예: 알트리아 308주, 버라이존 360주..." value="브로드컴 230주">
-    </div>
+    <main>
+        <div class="input-section">
+            <div class="input-group">
+                <label for="stockInput">종목명 및 수량 (예: SCHD 70주, 브로드컴 3주)</label>
+                <input type="text" id="stockInput" placeholder="여러 종목을 입력하려면 ','로 구분하세요. (예: 브로드컴 230주, 알트리아 308주)" value="브로드컴 230주, 알트리아 308주">
+            </div>
+            <div class="input-group">
+                <label for="currentDividendInput">현재 연간 총 배당금 ($)</label>
+                <input type="number" id="currentDividendInput" placeholder="예: 2760" value="2760">
+            </div>
+            <div class="input-group">
+                <label for="growthRateInput">예상 연평균 배당 성장률 (%)</label>
+                <input type="number" id="growthRateInput" placeholder="예: 10" value="10">
+            </div>
+            <button onclick="calculateAndRender()">계산하기 (Calculate)</button>
+        </div>
 
-    <div class="input-group">
-        <label for="currentDividend">현재 연간 총 배당금 ($)</label>
-        <input type="number" id="currentDividend" placeholder="현재 1년간 받는 총 배당금을 입력하세요" value="1200">
-    </div>
+        <div class="chart-section" style="display: none;">
+            <div class="chart-header">배당금 차트</div>
+            <div class="chart-container">
+                <canvas id="dividendChart"></canvas>
+            </div>
+            <div class="notes">30년 동안의 총 연간 배당금 복리 성장을 보여줍니다.</div>
+        </div>
 
-    <div class="input-group">
-        <label for="growthRate">예상 연평균 배당 성장률 (%)</label>
-        <input type="number" id="growthRate" placeholder="예: 8" value="10">
-    </div>
-
-    <button onclick="calculateDividend()">계산하기</button>
-
-    <div id="nextQuarterBox" class="result-box" style="display: none;"></div>
-
-    <table id="resultTable" style="display: none;">
-        <thead>
-            <tr>
-                <th>연차</th>
-                <th>예상 연간 총 배당금 ($)</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            </tbody>
-    </table>
-
-    <script>
-        function calculateDividend() {
-            const stockName = document.getElementById('stockName').value;
-            const currentDividend = parseFloat(document.getElementById('currentDividend').value);
-            const growthRate = parseFloat(document.getElementById('growthRate').value) / 100;
-
-            if (isNaN(currentDividend) || isNaN(growthRate)) {
-                alert("배당금과 성장률을 정확한 숫자로 입력해주세요.");
-                return;
-            }
-
-            // 1. 다음 분기 배당금 계산 (연간 배당금의 1/4)
-            const nextQuarter = currentDividend / 4;
-            const nextQuarterBox = document.getElementById('nextQuarterBox');
-            nextQuarterBox.style.display = 'block';
-            nextQuarterBox.innerHTML = `💸 <strong>${stockName}</strong>의 다음 분기 예상 배당금<br><br><span style="font-size: 24px; font-weight: bold;">$${nextQuarter.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
-
-            // 2. 1~30년 복리 표 생성
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = ''; 
-            
-            let expectedDividend = currentDividend;
-
-            for (let year = 1; year <= 30; year++) {
-                expectedDividend += expectedDividend * growthRate; // 매년 배당 성장률만큼 복리 증가
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${year}년 후</strong></td>
-                    <td>$${expectedDividend.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                `;
-                tableBody.appendChild(row);
-            }
-
-            // 결과 테이블 보여주기
-            document.getElementById('resultTable').style.display = 'table';
-        }
-    </script>
-
-</body>
-</html>
+        <div class="tab-section" style="display: none;">
+            <button id="tab1Month" onclick="changeTab('1月')">1月
